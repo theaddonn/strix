@@ -1,2 +1,3 @@
-# addon-fmt
+# strix
+
 Simple addon formatter
