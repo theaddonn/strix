@@ -1,5 +1,6 @@
 use crate::args::{CliInput, CliSubCommand};
 use crate::fmt::fmt;
+use crate::new::new;
 use chrono::Local;
 use clap::Parser;
 use fern::colors::{Color, ColoredLevelConfig};
@@ -7,7 +8,6 @@ use log::info;
 use std::process::exit;
 use tokio::runtime::Builder;
 use tokio::time::Instant;
-use crate::new::new;
 
 mod args;
 mod fmt;
