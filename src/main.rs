@@ -1,4 +1,3 @@
-use crate::args::CliSubCommand::Fmt;
 use crate::args::{CliInput, CliSubCommand};
 use crate::fmt::fmt;
 use chrono::Local;
@@ -8,9 +7,11 @@ use log::info;
 use std::process::exit;
 use tokio::runtime::Builder;
 use tokio::time::Instant;
+use crate::new::new;
 
 mod args;
 mod fmt;
+mod new;
 
 fn setup_logger() {
     let colors = ColoredLevelConfig::new()
@@ -60,9 +61,9 @@ async fn tokio_main() {
     let args = CliInput::parse();
 
     let error = match args.command {
-        CliSubCommand::New(_) => false,
+        CliSubCommand::New(v) => new(v).await,
         CliSubCommand::Build(_) => false,
-        Fmt(v) => fmt(v).await,
+        CliSubCommand::Fmt(v) => fmt(v).await,
     };
 
     info!(
