@@ -15,12 +15,24 @@ pub async fn new(new: CliNewSubCommand) -> bool {
         .report(true)
         .default(0);
 
+    let path = new.path.unwrap_or_default();
+
+    if !path.exists() || !path.is_dir() {
+        match fs::create_dir(&path) {
+            Ok(_) => {}
+            Err(err) => {
+                error!("An unexpected Error occurred while trying to create {:?}, Err: {err}", path);
+                return true;
+            }
+        }
+    }
+
     match select.interact() {
-        Ok(0) => new_vanilla(name, new.path),
+        Ok(0) => new_vanilla(name, path),
         Ok(1) => {
             unimplemented!()
         }
-        Ok(3) => {
+        Ok(2) => {
             unimplemented!()
         }
         Ok(other) => {
@@ -34,7 +46,7 @@ pub async fn new(new: CliNewSubCommand) -> bool {
     }
 }
 
-fn new_vanilla(name: String, path: Option<PathBuf>) -> bool {
+fn new_vanilla(name: String, path: PathBuf) -> bool {
     let select = MultiSelect::new()
         .with_prompt(format!("Select the packs for {name:?}"))
         .items(&[
@@ -53,11 +65,9 @@ fn new_vanilla(name: String, path: Option<PathBuf>) -> bool {
         }
     };
 
+    // Behaviour Pack
     if selected.contains(&0) {
-        let addon_path = match &path {
-            None => PathBuf::from(format!("{name}BP")),
-            Some(parent) => parent.join(format!("{name}BP")),
-        };
+        let addon_path = &path.join(format!("{name}BP"));
 
         let json = serde_json::to_string_pretty(&json!({
             "format_version": 2,
@@ -81,22 +91,20 @@ fn new_vanilla(name: String, path: Option<PathBuf>) -> bool {
 
         if !addon_path.exists() {
             if let Err(err) = fs::create_dir(&addon_path) {
-                error!("An unexpected Error occurred while trying to write {} the tokio runtime, Err: {err}", addon_path.display());
+                error!("An unexpected Error occurred while trying to write {:?}, Err: {err}", addon_path.display());
                 return true;
             }
         }
 
         if let Err(err) = fs::write(addon_path.join("manifest.json"), json) {
-            error!("An unexpected Error occurred while trying to write {} the tokio runtime, Err: {err}", addon_path.join("manifest.json").display());
+            error!("An unexpected Error occurred while trying to write {:?}, Err: {err}", addon_path.join("manifest.json").display());
             return true;
         };
     }
 
+    // Resource Pack
     if selected.contains(&1) {
-        let addon_path = match &path {
-            None => PathBuf::from(format!("{name}RP")),
-            Some(parent) => parent.join(format!("{name}RP")),
-        };
+        let addon_path = &path.join(format!("{name}RP"));
 
         let json = serde_json::to_string_pretty(&json!({
             "format_version": 2,
@@ -129,6 +137,17 @@ fn new_vanilla(name: String, path: Option<PathBuf>) -> bool {
             error!("An unexpected Error occurred while trying to write {} the tokio runtime, Err: {err}", addon_path.join("manifest.json").display());
             return true;
         };
+    }
+
+    // World Template
+    if selected.contains(&2) {
+        unimplemented!()
+    }
+
+
+    // Skin Pack
+    if selected.contains(&3) {
+        unimplemented!()
     }
 
     false

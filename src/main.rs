@@ -70,7 +70,7 @@ async fn tokio_main() {
     let error = match args.command {
         CliSubCommand::New(v) => new(v).await,
         CliSubCommand::Build(v) => build(v, config).await,
-        CliSubCommand::Config() => { false }
+        CliSubCommand::Config(_) => { false }
         CliSubCommand::Fmt(v) => fmt(v, config).await,
     };
 

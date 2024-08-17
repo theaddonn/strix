@@ -11,13 +11,14 @@ pub struct CliInput {
 pub enum CliSubCommand {
     New(CliNewSubCommand),
     Build(CliBuildSubCommand),
-    Config(),
+    Config(CliFmtSubCommand),
     Fmt(CliFmtSubCommand),
 }
 
 #[derive(Args, Debug, Clone)]
 pub struct CliNewSubCommand {
     pub name: String,
+    #[arg(long)]
     pub path: Option<PathBuf>,
 }
 

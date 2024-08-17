@@ -59,6 +59,7 @@ impl Default for StrixFmtConfig {
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct StrixBuildConfig {
     pub default: String,
+    pub build_path: String,
     pub profiles: HashMap<String, StrixBuildConfigProfile>,
 }
 
@@ -66,6 +67,7 @@ impl Default for StrixBuildConfig {
     fn default() -> Self {
         Self {
             default: String::from("debug"),
+            build_path: String::from("target"),
             profiles: HashMap::from([
                 (String::from("debug"), StrixBuildConfigProfile {
                     minify: false,
