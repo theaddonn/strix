@@ -13,6 +13,7 @@ use std::fs;
 use std::path::{Path, PathBuf};
 use std::sync::atomic::AtomicBool;
 use std::sync::Arc;
+use clap::builder::Str;
 use walkdir::{DirEntry, WalkDir};
 use crate::config::StrixConfig;
 
@@ -25,31 +26,60 @@ fn try_rm_prefix(path: &Path) -> PathBuf {
         .to_path_buf()
 }
 
-fn fmt_build_config(fmt: &CliFmtSubCommand) -> Configuration {
+fn fmt_build_config(fmt: &CliFmtSubCommand, config: &Option<StrixConfig>) -> Configuration {
+    let config = config.clone().unwrap_or(StrixConfig::default());
+
     Configuration {
         javascript_indent_style: match fmt.use_tabs {
-            true => Some(IndentStyle::Tab),
-            false => Some(IndentStyle::Space),
+            Some(true) => Some(IndentStyle::Tab),
+            _ => match config.fmt.use_tabs {
+                true => Some(IndentStyle::Tab),
+                false => Some(IndentStyle::Space),
+            },
         },
-        javascript_indent_size: fmt.indent_width,
-        javascript_line_width: fmt.line_width,
+        javascript_indent_size: match fmt.indent_width {
+            Some(v) => Some(v),
+            None => Some(config.fmt.indent_width),
+        },
+        javascript_line_width: match fmt.line_width {
+            Some(v) => Some(v),
+            None => Some(config.fmt.line_width),
+        },
         json_indent_style: match fmt.use_tabs {
-            true => Some(IndentStyle::Tab),
-            false => Some(IndentStyle::Space),
+            Some(true) => Some(IndentStyle::Tab),
+            _ => match config.fmt.use_tabs {
+                true => Some(IndentStyle::Tab),
+                false => Some(IndentStyle::Space),
+            },
         },
-        json_indent_size: fmt.indent_width,
-        json_line_width: fmt.line_width,
+        json_indent_size: match fmt.indent_width {
+            Some(v) => Some(v),
+            None => Some(config.fmt.indent_width),
+        },
+        json_line_width: match fmt.line_width {
+            Some(v) => Some(v),
+            None => Some(config.fmt.line_width),
+        },
         semicolons: match fmt.always_semicolons {
-            true => Some(Semicolons::Always),
-            false => Some(Semicolons::AsNeeded),
+            Some(true) => Some(Semicolons::Always),
+            _ => match config.fmt.always_semicolons {
+                true => Some(Semicolons::Always),
+                false => Some(Semicolons::AsNeeded),
+            },
         },
         quote_style: match fmt.single_quote {
-            true => Some(QuoteStyle::Single),
-            false => Some(QuoteStyle::Double),
+            Some(true) => Some(QuoteStyle::Single),
+            _ => match config.fmt.single_quote {
+                true => Some(QuoteStyle::Single),
+                false => Some(QuoteStyle::Double),
+            },
         },
         jsx_quote_style: match fmt.single_quote {
-            true => Some(QuoteStyle::Single),
-            false => Some(QuoteStyle::Double),
+            Some(true) => Some(QuoteStyle::Single),
+            _ => match config.fmt.single_quote {
+                true => Some(QuoteStyle::Single),
+                false => Some(QuoteStyle::Double),
+            },
         },
         quote_properties: Some(QuoteProperties::Preserve),
         arrow_parentheses: Some(ArrowParentheses::AsNeeded),
@@ -58,7 +88,7 @@ fn fmt_build_config(fmt: &CliFmtSubCommand) -> Configuration {
 }
 
 pub async fn fmt(fmt: CliFmtSubCommand, config: Option<StrixConfig>) -> bool {
-    let config = Arc::new(fmt_build_config(&fmt));
+    let config = Arc::new(fmt_build_config(&fmt, &config));
 
     let mut count = 0;
     let walk: Vec<_> = WalkDir::new(fmt.path.unwrap_or(current_dir().unwrap()))

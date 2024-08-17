@@ -33,13 +33,13 @@ pub struct CliFmtSubCommand {
     #[arg(short, long)]
     pub check: bool,
     #[arg(short, long)]
-    pub use_tabs: bool,
+    pub use_tabs: Option<bool>,
     #[arg(long)]
     pub line_width: Option<u16>,
     #[arg(long)]
     pub indent_width: Option<u8>,
     #[arg(short, long)]
-    pub always_semicolons: bool,
+    pub always_semicolons: Option<bool>,
     #[arg(short, long)]
-    pub single_quote: bool,
+    pub single_quote: Option<bool>,
 }
