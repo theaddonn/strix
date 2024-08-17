@@ -1,13 +1,12 @@
 use crate::args::{CliInput, CliSubCommand};
 use crate::build::build;
-use crate::config::{get_config, StrixConfig};
+use crate::config::get_config;
 use crate::fmt::fmt;
 use crate::new::new;
 use chrono::Local;
 use clap::Parser;
 use fern::colors::{Color, ColoredLevelConfig};
-use log::{error, info};
-use std::fs;
+use log::info;
 use std::process::exit;
 use tokio::runtime::Builder;
 use tokio::time::Instant;

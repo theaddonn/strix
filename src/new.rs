@@ -1,6 +1,5 @@
 use crate::args::CliNewSubCommand;
 use crate::config::StrixConfig;
-use clap::builder::Str;
 use dialoguer::{Input, MultiSelect, Select};
 use log::error;
 use serde_json::json;
@@ -55,10 +54,11 @@ pub async fn new(new: CliNewSubCommand) -> bool {
         }
     }
 
-    let mut config = StrixConfig::default();
-
-    config.name = name;
-    config.description = description;
+    let config = StrixConfig {
+        name,
+        description,
+        ..Default::default()
+    };
 
     match fs::write(
         path.join(STRIX_CONFIG),
@@ -136,7 +136,7 @@ fn new_vanilla(config: StrixConfig, path: PathBuf) -> bool {
         .unwrap_or_default();
 
         if !addon_path.exists() {
-            if let Err(err) = fs::create_dir(&addon_path) {
+            if let Err(err) = fs::create_dir(addon_path) {
                 error!(
                     "An unexpected Error occurred while trying to write {:?}, Err: {err}",
                     addon_path.display()
@@ -179,7 +179,7 @@ fn new_vanilla(config: StrixConfig, path: PathBuf) -> bool {
         .unwrap_or_default();
 
         if !addon_path.exists() {
-            if let Err(err) = fs::create_dir(&addon_path) {
+            if let Err(err) = fs::create_dir(addon_path) {
                 error!("An unexpected Error occurred while trying to write {} the tokio runtime, Err: {err}", addon_path.display());
                 return true;
             }

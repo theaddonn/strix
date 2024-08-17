@@ -1,6 +1,5 @@
 use crate::args::CliFmtSubCommand;
 use crate::config::StrixConfig;
-use clap::builder::Str;
 use console::Style;
 use dprint_plugin_biome::configuration::{
     ArrowParentheses, Configuration, IndentStyle, QuoteProperties, QuoteStyle, Semicolons,
@@ -27,7 +26,7 @@ fn try_rm_prefix(path: &Path) -> PathBuf {
 }
 
 fn fmt_build_config(fmt: &CliFmtSubCommand, config: &Option<StrixConfig>) -> Configuration {
-    let config = config.clone().unwrap_or(StrixConfig::default());
+    let config = config.clone().unwrap_or_default();
 
     Configuration {
         javascript_indent_style: match fmt.use_tabs {
