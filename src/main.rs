@@ -10,6 +10,7 @@ use tokio::runtime::Builder;
 use tokio::time::Instant;
 
 mod args;
+mod config;
 mod fmt;
 mod new;
 
