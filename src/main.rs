@@ -1,18 +1,22 @@
+use std::fs;
 use crate::args::{CliInput, CliSubCommand};
 use crate::fmt::fmt;
 use crate::new::new;
 use chrono::Local;
 use clap::Parser;
 use fern::colors::{Color, ColoredLevelConfig};
-use log::info;
+use log::{error, info};
 use std::process::exit;
 use tokio::runtime::Builder;
 use tokio::time::Instant;
+use crate::build::build;
+use crate::config::{get_config, StrixConfig};
 
 mod args;
 mod config;
 mod fmt;
 mod new;
+mod build;
 
 fn setup_logger() {
     let colors = ColoredLevelConfig::new()
@@ -61,10 +65,13 @@ async fn tokio_main() {
 
     let args = CliInput::parse();
 
+    let config = get_config(&args);
+
     let error = match args.command {
         CliSubCommand::New(v) => new(v).await,
-        CliSubCommand::Build(_) => false,
-        CliSubCommand::Fmt(v) => fmt(v).await,
+        CliSubCommand::Build(v) => build(v, config).await,
+        CliSubCommand::Config() => { false }
+        CliSubCommand::Fmt(v) => fmt(v, config).await,
     };
 
     info!(

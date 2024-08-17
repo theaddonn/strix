@@ -11,6 +11,7 @@ pub struct CliInput {
 pub enum CliSubCommand {
     New(CliNewSubCommand),
     Build(CliBuildSubCommand),
+    Config(),
     Fmt(CliFmtSubCommand),
 }
 

@@ -14,6 +14,7 @@ use std::path::{Path, PathBuf};
 use std::sync::atomic::AtomicBool;
 use std::sync::Arc;
 use walkdir::{DirEntry, WalkDir};
+use crate::config::StrixConfig;
 
 const SUPPORTED_EXTENSIONS: &[&str] = &["json", "js", "ts"];
 
@@ -56,7 +57,7 @@ fn fmt_build_config(fmt: &CliFmtSubCommand) -> Configuration {
     }
 }
 
-pub async fn fmt(fmt: CliFmtSubCommand) -> bool {
+pub async fn fmt(fmt: CliFmtSubCommand, config: Option<StrixConfig>) -> bool {
     let config = Arc::new(fmt_build_config(&fmt));
 
     let mut count = 0;
