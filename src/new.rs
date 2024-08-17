@@ -1,12 +1,12 @@
 use crate::args::CliNewSubCommand;
+use crate::config::StrixConfig;
+use clap::builder::Str;
 use dialoguer::{Input, MultiSelect, Select};
 use log::error;
 use serde_json::json;
 use std::fs;
 use std::path::PathBuf;
-use clap::builder::Str;
 use uuid::Uuid;
-use crate::config::StrixConfig;
 
 const STRIX_CONFIG: &str = "strix.json";
 
@@ -22,7 +22,7 @@ pub async fn new(new: CliNewSubCommand) -> bool {
         Ok(v) => v,
         Err(err) => {
             error!("An unexpected Error occurred while trying to prompt for the Addon Name, Err: {err}");
-            return true
+            return true;
         }
     };
 
@@ -30,10 +30,10 @@ pub async fn new(new: CliNewSubCommand) -> bool {
         Ok(v) => v,
         Err(err) => {
             error!("An unexpected Error occurred while trying to prompt for the Addon Description, Err: {err}");
-            return true
+            return true;
         }
     };
-    
+
     let select = Select::new()
         .with_prompt(format!("Select an Addon Generator for {name:?}"))
         .items(&["Vanilla", "Regolith", "Dash"])
@@ -46,7 +46,10 @@ pub async fn new(new: CliNewSubCommand) -> bool {
         match fs::create_dir(&path) {
             Ok(_) => {}
             Err(err) => {
-                error!("An unexpected Error occurred while trying to create {:?}, Err: {err}", path);
+                error!(
+                    "An unexpected Error occurred while trying to create {:?}, Err: {err}",
+                    path
+                );
                 return true;
             }
         }
@@ -57,10 +60,16 @@ pub async fn new(new: CliNewSubCommand) -> bool {
     config.name = name;
     config.description = description;
 
-    match fs::write(path.join(STRIX_CONFIG), serde_json::to_string_pretty(&config).unwrap()) {
+    match fs::write(
+        path.join(STRIX_CONFIG),
+        serde_json::to_string_pretty(&config).unwrap(),
+    ) {
         Ok(_) => {}
         Err(err) => {
-            error!("An unexpected Error occurred while trying to create {:?}, Err: {err}", path.join(".strix"));
+            error!(
+                "An unexpected Error occurred while trying to create {:?}, Err: {err}",
+                path.join(".strix")
+            );
         }
     }
 
@@ -128,13 +137,19 @@ fn new_vanilla(config: StrixConfig, path: PathBuf) -> bool {
 
         if !addon_path.exists() {
             if let Err(err) = fs::create_dir(&addon_path) {
-                error!("An unexpected Error occurred while trying to write {:?}, Err: {err}", addon_path.display());
+                error!(
+                    "An unexpected Error occurred while trying to write {:?}, Err: {err}",
+                    addon_path.display()
+                );
                 return true;
             }
         }
 
         if let Err(err) = fs::write(addon_path.join("manifest.json"), json) {
-            error!("An unexpected Error occurred while trying to write {:?}, Err: {err}", addon_path.join("manifest.json").display());
+            error!(
+                "An unexpected Error occurred while trying to write {:?}, Err: {err}",
+                addon_path.join("manifest.json").display()
+            );
             return true;
         };
     }
@@ -180,7 +195,6 @@ fn new_vanilla(config: StrixConfig, path: PathBuf) -> bool {
     if selected.contains(&2) {
         unimplemented!()
     }
-
 
     // Skin Pack
     if selected.contains(&3) {

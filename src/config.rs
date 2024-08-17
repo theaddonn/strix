@@ -1,27 +1,27 @@
+use crate::args::{CliInput, CliSubCommand};
+use log::error;
+use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::fs;
 use std::process::exit;
-use log::error;
-use serde::{Deserialize, Serialize};
-use crate::args::{CliInput, CliSubCommand};
 
 pub fn get_config(command: &CliInput) -> Option<StrixConfig> {
     match command.command {
-        CliSubCommand::New(_) => { None }
-        _ => config_read()
+        CliSubCommand::New(_) => None,
+        _ => config_read(),
     }
 }
 
 fn config_read() -> Option<StrixConfig> {
     match fs::read_to_string(".strix") {
-        Ok(text) => { match serde_json::from_str(&text) {
+        Ok(text) => match serde_json::from_str(&text) {
             Ok(v) => Some(v),
             Err(err) => {
                 error!("An unexpected Error occurred while trying to load `.strix` {err}");
                 exit(1);
             }
-        }}
-        Err(_) => None
+        },
+        Err(_) => None,
     }
 }
 
@@ -69,17 +69,23 @@ impl Default for StrixBuildConfig {
             default: String::from("debug"),
             build_path: String::from("target"),
             profiles: HashMap::from([
-                (String::from("debug"), StrixBuildConfigProfile {
-                    minify: false,
-                    compression: false,
-                    encryption: false,
-                }),
-                (String::from("release"), StrixBuildConfigProfile {
-                    minify: true,
-                    compression: true,
-                    encryption: true,
-                })
-            ])
+                (
+                    String::from("debug"),
+                    StrixBuildConfigProfile {
+                        minify: false,
+                        compression: false,
+                        encryption: false,
+                    },
+                ),
+                (
+                    String::from("release"),
+                    StrixBuildConfigProfile {
+                        minify: true,
+                        compression: true,
+                        encryption: true,
+                    },
+                ),
+            ]),
         }
     }
 }
@@ -90,5 +96,3 @@ pub struct StrixBuildConfigProfile {
     pub compression: bool,
     pub encryption: bool,
 }
-
-

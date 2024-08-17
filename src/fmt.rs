@@ -1,4 +1,6 @@
 use crate::args::CliFmtSubCommand;
+use crate::config::StrixConfig;
+use clap::builder::Str;
 use console::Style;
 use dprint_plugin_biome::configuration::{
     ArrowParentheses, Configuration, IndentStyle, QuoteProperties, QuoteStyle, Semicolons,
@@ -13,9 +15,7 @@ use std::fs;
 use std::path::{Path, PathBuf};
 use std::sync::atomic::AtomicBool;
 use std::sync::Arc;
-use clap::builder::Str;
 use walkdir::{DirEntry, WalkDir};
-use crate::config::StrixConfig;
 
 const SUPPORTED_EXTENSIONS: &[&str] = &["json", "js", "ts"];
 
