@@ -2,7 +2,7 @@
 name = "strix"
 version = "0.1.0"
 edition = "2021"
-authors = ["theaddonn <theaddonn@gmail.com>]
+authors = ["theaddonn <theaddonn@gmail.com>"]
 
 [dependencies]
 clap = { version = "4.5", features = ["derive"] }
