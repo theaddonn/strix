@@ -26,13 +26,13 @@ fn config_read() -> Option<StrixConfig> {
 }
 
 // commonly stored in a .strix file
-#[derive(Serialize, Deserialize, Debug, Clone)]
+#[derive(Serialize, Deserialize, Debug, Clone, Default)]
 pub struct StrixConfig {
-    name: String,
-    description: String,
-    authors: Option<Vec<String>>,
-    fmt: StrixFmtConfig,
-    build: StrixBuildConfig,
+    pub name: String,
+    pub description: String,
+    pub authors: Option<Vec<String>>,
+    pub fmt: StrixFmtConfig,
+    pub build: StrixBuildConfig,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]

@@ -17,7 +17,6 @@ pub enum CliSubCommand {
 
 #[derive(Args, Debug, Clone)]
 pub struct CliNewSubCommand {
-    pub name: String,
     #[arg(long)]
     pub path: Option<PathBuf>,
 }
