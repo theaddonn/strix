@@ -21,8 +21,9 @@ humantime = "2.1"
 
 walkdir = "2.5"
 directories = "5.0"
+zip = "2.1"
 rand = "0.8"
-tokio = { version = "1.39.2", features = ["full"] }
+tokio = { version = "1.39", features = ["full"] }
 num_cpus = "1.16"
 
 serde = "1.0"

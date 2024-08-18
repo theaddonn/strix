@@ -97,7 +97,7 @@ impl Default for StrixBuildConfig {
                         obfuscate: false,
                         compress: false,
                         encrypt: false,
-                        mojang_dev_folder: true,
+                        dev_folder: true,
                         package: false,
                     },
                 ),
@@ -108,7 +108,7 @@ impl Default for StrixBuildConfig {
                         obfuscate: true,
                         compress: true,
                         encrypt: true,
-                        mojang_dev_folder: false,
+                        dev_folder: false,
                         package: true,
                     },
                 ),
@@ -128,7 +128,7 @@ pub struct StrixBuildConfigProfile {
     /// Encrypt the addon
     pub encrypt: bool,
     /// If the building process should build
-    pub mojang_dev_folder: bool,
+    pub dev_folder: bool,
     /// Package all projects into one `.mcaddon` file
     pub package: bool
 }
