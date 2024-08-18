@@ -121,14 +121,17 @@ pub async fn fmt(fmt: CliFmtSubCommand, config: Option<StrixConfig>) -> bool {
             }
         } else {
             warn!(
-                "Found file without extension: {}",
+                "Found file without extension: {:?}",
                 try_rm_prefix(entry.path()).display()
             );
         };
     }
 
     for handle in handles {
-        handle.await.unwrap();
+        handle.await.unwrap_or_else(|err| {
+            error!("An unexpected Error occurred while trying to join a thread, Err: {err}");
+            unsafe { *error_out.as_ptr() = true };
+        })
     }
 
     unsafe { *error_out.as_ptr() }
@@ -142,7 +145,7 @@ fn fmt_handle_entry(
     error_out: &Arc<AtomicBool>,
 ) {
     if !quiet {
-        info!("Processing: {}", try_rm_prefix(entry.path()).display());
+        info!("Processing: {:?}", try_rm_prefix(entry.path()).display());
     }
 
     if !entry.path().is_file() {
@@ -153,7 +156,7 @@ fn fmt_handle_entry(
         Ok(text) => {
             if text.trim().is_empty() {
                 warn!(
-                    "Found empty file at {}",
+                    "Found empty file at {:?}",
                     try_rm_prefix(entry.path()).display()
                 )
             } else if check {
@@ -161,42 +164,45 @@ fn fmt_handle_entry(
                     Ok(_) => {}
                     Err(Ok(diff)) => {
                         error!(
-                            "Difference found in file {}:",
-                            try_rm_prefix(entry.path()).display()
+                            "Difference found in file {:?}:\n{}",
+                            try_rm_prefix(entry.path()).display(),
+                            diff
                         );
-                        println!("{diff}");
                         unsafe { *error_out.as_ptr() = true };
                     }
                     Err(Err(err)) => {
                         error!(
-                            "An unexpected Error occurred while trying to check {}",
-                            try_rm_prefix(entry.path()).display()
+                            "An unexpected Error occurred while trying to check {:?}\n{}",
+                            try_rm_prefix(entry.path()).display(),
+                            err
                         );
-                        println!("Err: {err}");
                         unsafe { *error_out.as_ptr() = true };
                     }
                 };
             } else {
                 match fmt_reformat(entry.path(), &text, config) {
                     Ok(Some(text)) => {
-                        info!("Reformating file {}", try_rm_prefix(entry.path()).display());
+                        info!(
+                            "Reformating file {:?}",
+                            try_rm_prefix(entry.path()).display()
+                        );
 
                         fs::write(entry.path(), text).unwrap_or_else(|err| {
                             error!(
-                                "An unexpected Error occurred while trying to write {}",
-                                try_rm_prefix(entry.path()).display()
+                                "An unexpected Error occurred while trying to write {:?}\n{}",
+                                try_rm_prefix(entry.path()).display(),
+                                err
                             );
-                            println!("Err: {err}");
                             unsafe { *error_out.as_ptr() = true };
                         })
                     }
                     Ok(None) => {}
                     Err(err) => {
                         error!(
-                            "An unexpected Error occurred while trying to reformat {}",
-                            try_rm_prefix(entry.path()).display()
+                            "An unexpected Error occurred while trying to reformat {:?}\n{}",
+                            try_rm_prefix(entry.path()).display(),
+                            err
                         );
-                        println!("Err: {err}");
                         unsafe { *error_out.as_ptr() = true };
                     }
                 };
@@ -204,10 +210,10 @@ fn fmt_handle_entry(
         }
         Err(err) => {
             error!(
-                "An unexpected Error occurred while trying to read {}",
-                try_rm_prefix(entry.path()).display()
+                "An unexpected Error occurred while trying to read {:?}\n{}",
+                try_rm_prefix(entry.path()).display(),
+                err
             );
-            println!("Err: {err}");
             unsafe { *error_out.as_ptr() = true };
         }
     }

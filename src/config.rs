@@ -5,6 +5,8 @@ use std::collections::HashMap;
 use std::fs;
 use std::process::exit;
 
+pub const STRIX_CONFIG: &str = "strix.json";
+
 pub fn get_config(command: &CliInput) -> Option<StrixConfig> {
     match command.command {
         CliSubCommand::New(_) => None,
@@ -13,11 +15,11 @@ pub fn get_config(command: &CliInput) -> Option<StrixConfig> {
 }
 
 fn config_read() -> Option<StrixConfig> {
-    match fs::read_to_string(".strix") {
+    match fs::read_to_string(STRIX_CONFIG) {
         Ok(text) => match serde_json::from_str(&text) {
             Ok(v) => Some(v),
             Err(err) => {
-                error!("An unexpected Error occurred while trying to load `.strix` {err}");
+                error!("An unexpected Error occurred while trying to load {STRIX_CONFIG:?} {err}");
                 exit(1);
             }
         },
@@ -31,8 +33,27 @@ pub struct StrixConfig {
     pub name: String,
     pub description: String,
     pub authors: Option<Vec<String>>,
-    pub fmt: StrixFmtConfig,
+    pub project_type: StrixConfigProjectType,
+    pub projects: HashMap<String, StrixConfigPackType>,
     pub build: StrixBuildConfig,
+    pub fmt: StrixFmtConfig,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone, Default)]
+pub enum StrixConfigProjectType {
+    #[default]
+    Vanilla,
+    Regolith,
+    Dash,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone, Default)]
+pub enum StrixConfigPackType {
+    #[default]
+    Behaviour,
+    Resource,
+    Skin,
+    WorldTemplate
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -58,31 +79,37 @@ impl Default for StrixFmtConfig {
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct StrixBuildConfig {
-    pub default: String,
     pub build_path: String,
+    pub default_profile: String,
     pub profiles: HashMap<String, StrixBuildConfigProfile>,
 }
 
 impl Default for StrixBuildConfig {
     fn default() -> Self {
         Self {
-            default: String::from("debug"),
             build_path: String::from("target"),
+            default_profile: String::from("debug"),
             profiles: HashMap::from([
                 (
                     String::from("debug"),
                     StrixBuildConfigProfile {
                         minify: false,
-                        compression: false,
-                        encryption: false,
+                        obfuscate: false,
+                        compress: false,
+                        encrypt: false,
+                        mojang_dev_folder: true,
+                        package: false,
                     },
                 ),
                 (
                     String::from("release"),
                     StrixBuildConfigProfile {
                         minify: true,
-                        compression: true,
-                        encryption: true,
+                        obfuscate: true,
+                        compress: true,
+                        encrypt: true,
+                        mojang_dev_folder: false,
+                        package: true,
                     },
                 ),
             ]),
@@ -92,7 +119,16 @@ impl Default for StrixBuildConfig {
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct StrixBuildConfigProfile {
+    /// Minify text and code in the Addon
     pub minify: bool,
-    pub compression: bool,
-    pub encryption: bool,
+    /// Obfuscate code in the Addon
+    pub obfuscate: bool,
+    /// Compress Assets for the addon, like images and audio
+    pub compress: bool,
+    /// Encrypt the addon
+    pub encrypt: bool,
+    /// If the building process should build
+    pub mojang_dev_folder: bool,
+    /// Package all projects into one `.mcaddon` file
+    pub package: bool
 }

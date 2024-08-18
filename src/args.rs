@@ -22,7 +22,12 @@ pub struct CliNewSubCommand {
 }
 
 #[derive(Args, Debug, Clone)]
-pub struct CliBuildSubCommand {}
+pub struct CliBuildSubCommand {
+    #[arg(short, long)]
+    pub quiet: bool,
+    #[arg(long)]
+    pub profile: Option<String>,
+}
 
 #[derive(Args, Debug, Clone)]
 pub struct CliFmtSubCommand {

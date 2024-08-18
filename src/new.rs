@@ -1,13 +1,11 @@
 use crate::args::CliNewSubCommand;
-use crate::config::StrixConfig;
+use crate::config::{StrixConfig, StrixConfigPackType, StrixConfigProjectType, STRIX_CONFIG};
 use dialoguer::{Input, MultiSelect, Select};
 use log::error;
 use serde_json::json;
 use std::fs;
 use std::path::PathBuf;
 use uuid::Uuid;
-
-const STRIX_CONFIG: &str = "strix.json";
 
 fn get_text(name: &'static str) -> Result<String, String> {
     Input::new()
@@ -39,46 +37,40 @@ pub async fn new(new: CliNewSubCommand) -> bool {
         .report(true)
         .default(0);
 
-    let path = new.path.unwrap_or_default();
-
-    if !path.exists() || !path.is_dir() {
-        match fs::create_dir(&path) {
-            Ok(_) => {}
-            Err(err) => {
-                error!(
+    if let Some(path) = &new.path {
+        if !path.exists() || !path.is_dir() {
+            match fs::create_dir(&path) {
+                Ok(_) => {}
+                Err(err) => {
+                    error!(
                     "An unexpected Error occurred while trying to create {:?}, Err: {err}",
                     path
                 );
-                return true;
+                    return true;
+                }
             }
         }
     }
 
-    let config = StrixConfig {
+    let path = new.path.unwrap_or_default();
+
+    let mut config = StrixConfig {
         name,
         description,
         ..Default::default()
     };
 
-    match fs::write(
-        path.join(STRIX_CONFIG),
-        serde_json::to_string_pretty(&config).unwrap(),
-    ) {
-        Ok(_) => {}
-        Err(err) => {
-            error!(
-                "An unexpected Error occurred while trying to create {:?}, Err: {err}",
-                path.join(".strix")
-            );
+    let error_out = match select.interact() {
+        Ok(0) => {
+            config.project_type = StrixConfigProjectType::Vanilla;
+            new_vanilla(&mut config, path.clone())
         }
-    }
-
-    match select.interact() {
-        Ok(0) => new_vanilla(config, path),
         Ok(1) => {
+            config.project_type = StrixConfigProjectType::Regolith;
             unimplemented!()
         }
         Ok(2) => {
+            config.project_type = StrixConfigProjectType::Dash;
             unimplemented!()
         }
         Ok(other) => {
@@ -89,12 +81,28 @@ pub async fn new(new: CliNewSubCommand) -> bool {
             error!("An unexpected Error occurred while trying to prompt for the Addon Generator, Err: {err}");
             true
         }
-    }
+    };
+
+    match fs::write(
+        path.join(&STRIX_CONFIG),
+        serde_json::to_string_pretty(&config).unwrap(),
+    ) {
+        Ok(_) => {}
+        Err(err) => {
+            error!(
+                "An unexpected Error occurred while trying to create {:?}, Err: {err}",
+                path.join(".strix")
+            );
+            return true;
+        }
+    };
+
+    error_out
 }
 
-fn new_vanilla(config: StrixConfig, path: PathBuf) -> bool {
+fn new_vanilla(config: &mut StrixConfig, path: PathBuf) -> bool {
     let select = MultiSelect::new()
-        .with_prompt(format!("Select the packs for {:?}", config.name))
+        .with_prompt(format!("Select the Packs for {:?}", config.name))
         .items(&[
             "Behaviour Pack",
             "Resource Pack",
@@ -113,7 +121,10 @@ fn new_vanilla(config: StrixConfig, path: PathBuf) -> bool {
 
     // Behaviour Pack
     if selected.contains(&0) {
-        let addon_path = &path.join(format!("{}BP", config.name));
+        let addon_name = format!("{}BP", config.name);
+        config.projects.insert(addon_name.clone(), StrixConfigPackType::Behaviour);
+
+        let addon_path = &path.join(addon_name);
 
         let json = serde_json::to_string_pretty(&json!({
             "format_version": 2,
@@ -156,7 +167,10 @@ fn new_vanilla(config: StrixConfig, path: PathBuf) -> bool {
 
     // Resource Pack
     if selected.contains(&1) {
-        let addon_path = &path.join(format!("{}RP", config.name));
+        let addon_name = format!("{}RP", config.name);
+        config.projects.insert(addon_name.clone(), StrixConfigPackType::Resource);
+
+        let addon_path = &path.join(addon_name);
 
         let json = serde_json::to_string_pretty(&json!({
             "format_version": 2,
@@ -180,13 +194,19 @@ fn new_vanilla(config: StrixConfig, path: PathBuf) -> bool {
 
         if !addon_path.exists() {
             if let Err(err) = fs::create_dir(addon_path) {
-                error!("An unexpected Error occurred while trying to write {} the tokio runtime, Err: {err}", addon_path.display());
+                error!(
+                    "An unexpected Error occurred while trying to write {:?}, Err: {err}",
+                    addon_path.display()
+                );
                 return true;
             }
         }
 
         if let Err(err) = fs::write(addon_path.join("manifest.json"), json) {
-            error!("An unexpected Error occurred while trying to write {} the tokio runtime, Err: {err}", addon_path.join("manifest.json").display());
+            error!(
+                "An unexpected Error occurred while trying to write {:?}, Err: {err}",
+                addon_path.join("manifest.json").display()
+            );
             return true;
         };
     }
