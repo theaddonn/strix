@@ -113,8 +113,6 @@ async fn build_vanilla(profile: &StrixBuildConfigProfile, config: &StrixConfig, 
         let project_path = temp_build_folder.join(&project);
         try_make_dir!(project_path);
 
-        let walk =
-
         project_paths.push((
             WalkDir::new(project_path.clone()),
             Path::new(project),
