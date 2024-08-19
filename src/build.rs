@@ -1,19 +1,19 @@
-use std::env::current_dir;
-use std::ffi::OsStr;
 use crate::args::CliBuildSubCommand;
 use crate::config::{
     StrixBuildConfigProfile, StrixConfig, StrixConfigPackType, StrixConfigProjectType, STRIX_CONFIG,
 };
 use anyhow::Context;
+use json_comments::StripComments;
 use log::{error, info, warn};
+use serde_json::Value;
+use std::env::current_dir;
+use std::ffi::OsStr;
 use std::fs;
 use std::fs::File;
 use std::io;
 use std::io::{Read, Seek, Write};
 use std::path::{Path, PathBuf};
 use std::process::exit;
-use json_comments::StripComments;
-use serde_json::Value;
 use uuid::Uuid;
 use walkdir::{DirEntry, WalkDir};
 use zip::write::SimpleFileOptions;
