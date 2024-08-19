@@ -11,11 +11,11 @@ use std::ffi::OsStr;
 use std::fs;
 use std::fs::File;
 use std::io;
-use std::io::{Read, Seek, Write};
+use std::io::{Read, Write};
 use std::path::{Path, PathBuf};
 use std::process::exit;
 use uuid::Uuid;
-use walkdir::{DirEntry, WalkDir};
+use walkdir::WalkDir;
 use zip::write::SimpleFileOptions;
 use zip::CompressionMethod;
 
