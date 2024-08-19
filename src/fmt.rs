@@ -87,7 +87,7 @@ fn fmt_build_config(fmt: &CliFmtSubCommand, config: &Option<StrixConfig>) -> Con
 }
 
 pub async fn fmt(fmt: CliFmtSubCommand, config: Option<StrixConfig>) -> bool {
-    let config = Arc::new(fmt_build_config(&fmt, &config));
+    let fmt_config = Arc::new(fmt_build_config(&fmt, &config));
 
     let mut count = 0;
     let walk: Vec<_> = WalkDir::new(fmt.path.unwrap_or(current_dir().unwrap()))
@@ -106,13 +106,19 @@ pub async fn fmt(fmt: CliFmtSubCommand, config: Option<StrixConfig>) -> bool {
     let error_out = Arc::new(AtomicBool::new(false));
 
     for entry in walk.into_iter().flatten() {
-        let config = config.clone();
+        let fmt_config = fmt_config.clone();
         let error_out = error_out.clone();
+
+        if let Some(config) = &config {
+            if try_rm_prefix(entry.path()).starts_with(Path::new(&config.build.build_path)) {
+                continue
+            }
+        }
 
         if let Some(ext) = entry.path().extension().and_then(OsStr::to_str) {
             if SUPPORTED_EXTENSIONS.contains(&ext) {
                 handles.push(tokio::task::spawn_blocking(move || {
-                    fmt_handle_entry(&entry, fmt.check, fmt.quiet, &config, &error_out);
+                    fmt_handle_entry(&entry, fmt.check, fmt.quiet, &fmt_config, &error_out);
                 }));
             }
         } else if let Some(file_name) = entry.file_name().to_str() {
