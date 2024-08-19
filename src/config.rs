@@ -53,7 +53,7 @@ pub enum StrixConfigPackType {
     Behaviour,
     Resource,
     Skin,
-    WorldTemplate
+    WorldTemplate,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -130,5 +130,5 @@ pub struct StrixBuildConfigProfile {
     /// If the building process should build
     pub dev_folder: bool,
     /// Package all projects into one `.mcaddon` file
-    pub package: bool
+    pub package: bool,
 }

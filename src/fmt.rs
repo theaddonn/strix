@@ -111,7 +111,7 @@ pub async fn fmt(fmt: CliFmtSubCommand, config: Option<StrixConfig>) -> bool {
 
         if let Some(config) = &config {
             if try_rm_prefix(entry.path()).starts_with(Path::new(&config.build.build_path)) {
-                continue
+                continue;
             }
         }
 

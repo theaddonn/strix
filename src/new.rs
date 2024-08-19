@@ -43,9 +43,9 @@ pub async fn new(new: CliNewSubCommand) -> bool {
                 Ok(_) => {}
                 Err(err) => {
                     error!(
-                    "An unexpected Error occurred while trying to create {:?}, Err: {err}",
-                    path
-                );
+                        "An unexpected Error occurred while trying to create {:?}, Err: {err}",
+                        path
+                    );
                     return true;
                 }
             }
@@ -122,7 +122,9 @@ fn new_vanilla(config: &mut StrixConfig, path: PathBuf) -> bool {
     // Behaviour Pack
     if selected.contains(&0) {
         let addon_name = format!("{}BP", config.name);
-        config.projects.insert(addon_name.clone(), StrixConfigPackType::Behaviour);
+        config
+            .projects
+            .insert(addon_name.clone(), StrixConfigPackType::Behaviour);
 
         let addon_path = &path.join(addon_name);
 
@@ -168,7 +170,9 @@ fn new_vanilla(config: &mut StrixConfig, path: PathBuf) -> bool {
     // Resource Pack
     if selected.contains(&1) {
         let addon_name = format!("{}RP", config.name);
-        config.projects.insert(addon_name.clone(), StrixConfigPackType::Resource);
+        config
+            .projects
+            .insert(addon_name.clone(), StrixConfigPackType::Resource);
 
         let addon_path = &path.join(addon_name);
 

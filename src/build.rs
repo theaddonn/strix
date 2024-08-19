@@ -1,17 +1,19 @@
+use crate::args::CliBuildSubCommand;
+use crate::config::{
+    StrixBuildConfigProfile, StrixConfig, StrixConfigPackType, StrixConfigProjectType, STRIX_CONFIG,
+};
+use anyhow::Context;
+use log::{error, info, warn};
 use std::fs;
 use std::fs::File;
-use std::path::{Path, PathBuf};
-use crate::args::CliBuildSubCommand;
-use crate::config::{StrixBuildConfigProfile, StrixConfig, StrixConfigPackType, StrixConfigProjectType, STRIX_CONFIG};
-use log::{error, info, warn};
-use uuid::Uuid;
 use std::io;
 use std::io::{Read, Seek, Write};
+use std::path::{Path, PathBuf};
 use std::process::exit;
-use anyhow::Context;
+use uuid::Uuid;
 use walkdir::{DirEntry, WalkDir};
-use zip::CompressionMethod;
 use zip::write::SimpleFileOptions;
+use zip::CompressionMethod;
 
 fn get_mojang_folder() -> PathBuf {
     if let Some(dir) = directories::BaseDirs::new() {
@@ -49,12 +51,15 @@ macro_rules! try_make_dir {
             match fs::create_dir(&$path) {
                 Ok(_) => {}
                 Err(err) => {
-                    error!("An unexpected Error occurred while trying to create {:?}, Err: {err}", $path);
+                    error!(
+                        "An unexpected Error occurred while trying to create {:?}, Err: {err}",
+                        $path
+                    );
                     return true;
                 }
             }
         };
-    }
+    };
 }
 
 pub async fn build(build: CliBuildSubCommand, config: Option<StrixConfig>) -> bool {
@@ -66,7 +71,9 @@ pub async fn build(build: CliBuildSubCommand, config: Option<StrixConfig>) -> bo
         StrixConfig::default()
     });
 
-    let profile_name = build.profile.unwrap_or(config.build.default_profile.clone());
+    let profile_name = build
+        .profile
+        .unwrap_or(config.build.default_profile.clone());
 
     let profile = match config.build.profiles.get(&profile_name) {
         None => {
@@ -100,13 +107,32 @@ pub async fn build(build: CliBuildSubCommand, config: Option<StrixConfig>) -> bo
     try_make_dir!(temp_build_folder);
 
     match config.project_type {
-        StrixConfigProjectType::Vanilla => { build_vanilla(&profile, &config, &temp_build_folder, &target_folder, build.quiet).await }
-        StrixConfigProjectType::Regolith => { unimplemented!() }
-        StrixConfigProjectType::Dash => { unimplemented!() }
+        StrixConfigProjectType::Vanilla => {
+            build_vanilla(
+                &profile,
+                &config,
+                &temp_build_folder,
+                &target_folder,
+                build.quiet,
+            )
+            .await
+        }
+        StrixConfigProjectType::Regolith => {
+            unimplemented!()
+        }
+        StrixConfigProjectType::Dash => {
+            unimplemented!()
+        }
     }
 }
 
-async fn build_vanilla(profile: &StrixBuildConfigProfile, config: &StrixConfig, temp_build_folder: &PathBuf, target_folder: &PathBuf, quiet: bool) -> bool {
+async fn build_vanilla(
+    profile: &StrixBuildConfigProfile,
+    config: &StrixConfig,
+    temp_build_folder: &PathBuf,
+    target_folder: &PathBuf,
+    quiet: bool,
+) -> bool {
     let mut project_paths = vec![];
 
     for (project, project_type) in &config.projects {
@@ -140,7 +166,6 @@ async fn build_vanilla(profile: &StrixBuildConfigProfile, config: &StrixConfig, 
 
         for entry in walk.into_iter().flatten() {
             /* DO SOME PROCESSING LIKE MINIFICATION, COMPRESSION, ENCRYPTION, OBFUSCATION */
-
         }
 
         if profile.dev_folder {
@@ -148,7 +173,9 @@ async fn build_vanilla(profile: &StrixBuildConfigProfile, config: &StrixConfig, 
 
             match project_type {
                 StrixConfigPackType::Behaviour => {
-                    let path = mojang_folder.join("development_behavior_packs").join(project);
+                    let path = mojang_folder
+                        .join("development_behavior_packs")
+                        .join(project);
                     try_make_dir!(path);
 
                     match copy_dir_all(&project_path, &path) {
@@ -160,7 +187,9 @@ async fn build_vanilla(profile: &StrixBuildConfigProfile, config: &StrixConfig, 
                     }
                 }
                 StrixConfigPackType::Resource => {
-                    let path = mojang_folder.join("development_resource_packs").join(project);
+                    let path = mojang_folder
+                        .join("development_resource_packs")
+                        .join(project);
                     try_make_dir!(path);
 
                     match copy_dir_all(&project_path, &path) {
@@ -180,9 +209,12 @@ async fn build_vanilla(profile: &StrixBuildConfigProfile, config: &StrixConfig, 
         if let Err(err) = zip_dir(
             project_paths,
             &target_folder.join(format!("{}.mcaddon", config.name)),
-            quiet
+            quiet,
         ) {
-            error!("An unexpected Error occurred while trying to zip {:?}, Err: {err}", config.name);
+            error!(
+                "An unexpected Error occurred while trying to zip {:?}, Err: {err}",
+                config.name
+            );
             return true;
         }
     }
@@ -190,13 +222,7 @@ async fn build_vanilla(profile: &StrixBuildConfigProfile, config: &StrixConfig, 
     false
 }
 
-fn zip_dir(
-    it: Vec<(WalkDir, &Path, &Path)>,
-    path: &Path,
-    quiet: bool
-) -> anyhow::Result<()>
-{
-
+fn zip_dir(it: Vec<(WalkDir, &Path, &Path)>, path: &Path, quiet: bool) -> anyhow::Result<()> {
     let file = File::create(path)?;
 
     let mut zip = zip::ZipWriter::new(file);
@@ -219,7 +245,6 @@ fn zip_dir(
                 .with_context(|| format!("{name:?} Is a Non UTF-8 Path"))?;
 
             if path.is_file() {
-
                 if !quiet {
                     println!("Zipping file {path:?}");
                 }
@@ -234,7 +259,6 @@ fn zip_dir(
                 zip.add_directory(path_as_string, options)?;
             }
         }
-
     }
 
     zip.finish()?;
