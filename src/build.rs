@@ -1,13 +1,16 @@
 use std::fs;
+use std::fs::File;
 use std::path::{Path, PathBuf};
 use crate::args::CliBuildSubCommand;
 use crate::config::{StrixBuildConfigProfile, StrixConfig, StrixConfigPackType, StrixConfigProjectType, STRIX_CONFIG};
 use log::{error, info, warn};
 use uuid::Uuid;
 use std::io;
-use std::io::{Seek, Write};
+use std::io::{Read, Seek, Write};
 use std::process::exit;
+use anyhow::Context;
 use walkdir::{DirEntry, WalkDir};
+use zip::CompressionMethod;
 use zip::write::SimpleFileOptions;
 
 fn get_mojang_folder() -> PathBuf {
@@ -97,16 +100,26 @@ pub async fn build(build: CliBuildSubCommand, config: Option<StrixConfig>) -> bo
     try_make_dir!(temp_build_folder);
 
     match config.project_type {
-        StrixConfigProjectType::Vanilla => { build_vanilla(&profile, &config, &temp_build_folder) }
+        StrixConfigProjectType::Vanilla => { build_vanilla(&profile, &config, &temp_build_folder, &target_folder, build.quiet).await }
         StrixConfigProjectType::Regolith => { unimplemented!() }
         StrixConfigProjectType::Dash => { unimplemented!() }
     }
 }
 
-async fn build_vanilla(profile: &StrixBuildConfigProfile, config: &StrixConfig, temp_build_folder: &PathBuf) -> bool {
+async fn build_vanilla(profile: &StrixBuildConfigProfile, config: &StrixConfig, temp_build_folder: &PathBuf, target_folder: &PathBuf, quiet: bool) -> bool {
+    let mut project_paths = vec![];
+
     for (project, project_type) in &config.projects {
         let project_path = temp_build_folder.join(&project);
         try_make_dir!(project_path);
+
+        let walk =
+
+        project_paths.push((
+            WalkDir::new(project_path.clone()),
+            Path::new(project),
+            Path::new(temp_build_folder),
+        ));
 
         match copy_dir_all(&project, &project_path) {
             Ok(_) => {}
@@ -165,50 +178,67 @@ async fn build_vanilla(profile: &StrixBuildConfigProfile, config: &StrixConfig, 
         }
     }
 
+    if profile.package {
+        if let Err(err) = zip_dir(
+            project_paths,
+            &target_folder.join(format!("{}.mcaddon", config.name)),
+            quiet
+        ) {
+            error!("An unexpected Error occurred while trying to zip {:?}, Err: {err}", config.name);
+            return true;
+        }
+    }
+
     false
 }
 
-fn zip_dir<T>(
-    it: &mut dyn Iterator<Item = DirEntry>,
-    prefix: &Path,
-    writer: T,
-    method: zip::CompressionMethod,
-) -> Result<(), String>
-where
-    T: Write + Seek,
+fn zip_dir(
+    it: Vec<(WalkDir, &Path, &Path)>,
+    path: &Path,
+    quiet: bool
+) -> anyhow::Result<()>
 {
-    let mut zip = zip::ZipWriter::new(writer);
+
+    let file = File::create(path)?;
+
+    let mut zip = zip::ZipWriter::new(file);
     let options = SimpleFileOptions::default()
-        .compression_method(method)
+        .compression_method(CompressionMethod::Deflated)
         .unix_permissions(0o755);
 
-    let prefix = Path::new(prefix);
     let mut buffer = Vec::new();
-    for entry in it {
-        let path = entry.path();
-        let name = path.strip_prefix(prefix).unwrap();
-        let path_as_string = name
-            .to_str()
-            .map(str::to_owned)
-            .with_context(|| format!("{name:?} Is a Non UTF-8 Path"))?;
 
-        // Write file or directory explicitly
-        // Some unzip tools unzip files with directory paths correctly, some do not!
-        if path.is_file() {
-            println!("adding file {path:?} as {name:?} ...");
-            zip.start_file(path_as_string, options)?;
-            let mut f = File::open(path)?;
+    for (walk, parent, prefix) in it {
+        let walk = walk.into_iter();
+        let walk = walk.filter_map(|e| e.ok());
 
-            f.read_to_end(&mut buffer)?;
-            zip.write_all(&buffer)?;
-            buffer.clear();
-        } else if !name.as_os_str().is_empty() {
-            // Only if not root! Avoids path spec / warning
-            // and mapname conversion failed error on unzip
-            println!("adding dir {path_as_string:?} as {name:?} ...");
-            zip.add_directory(path_as_string, options)?;
+        for entry in walk {
+            let path = entry.path();
+            let name = parent.join(path.strip_prefix(prefix.join(parent))?);
+            let path_as_string = name
+                .to_str()
+                .map(str::to_owned)
+                .with_context(|| format!("{name:?} Is a Non UTF-8 Path"))?;
+
+            if path.is_file() {
+
+                if !quiet {
+                    println!("Zipping file {path:?}");
+                }
+
+                zip.start_file(path_as_string, options)?;
+                let mut f = File::open(path)?;
+
+                f.read_to_end(&mut buffer)?;
+                zip.write_all(&buffer)?;
+                buffer.clear();
+            } else if !name.as_os_str().is_empty() {
+                zip.add_directory(path_as_string, options)?;
+            }
         }
+
     }
+
     zip.finish()?;
     Ok(())
 }
