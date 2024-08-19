@@ -120,7 +120,7 @@ pub async fn build(build: CliBuildSubCommand, config: Option<StrixConfig>) -> bo
     match config.project_type {
         StrixConfigProjectType::Vanilla => {
             build_vanilla(
-                &profile,
+                profile,
                 &config,
                 &temp_build_folder,
                 &target_folder,
@@ -141,13 +141,13 @@ async fn build_vanilla(
     profile: &StrixBuildConfigProfile,
     config: &StrixConfig,
     temp_build_folder: &PathBuf,
-    target_folder: &PathBuf,
+    target_folder: &Path,
     quiet: bool,
 ) -> bool {
     let mut project_paths = vec![];
 
     for (project, project_type) in &config.projects {
-        let project_path = temp_build_folder.join(&project);
+        let project_path = temp_build_folder.join(project);
         try_make_dir!(project_path);
 
         project_paths.push((
@@ -156,7 +156,7 @@ async fn build_vanilla(
             Path::new(temp_build_folder),
         ));
 
-        match copy_dir_all(&project, &project_path) {
+        match copy_dir_all(project, &project_path) {
             Ok(_) => {}
             Err(err) => {
                 error!("An unexpected Error occurred while trying to copy {project:?} to {project_path:?}, Err: {err}");
@@ -178,9 +178,7 @@ async fn build_vanilla(
         for entry in walk.into_iter().flatten() {
             let mut text = match fs::read_to_string(entry.path()) {
                 Ok(v) => v,
-                Err(_) => {
-                    continue
-                }
+                Err(_) => continue,
             };
 
             if let Some(ext) = entry.path().extension().and_then(OsStr::to_str) {
@@ -188,14 +186,13 @@ async fn build_vanilla(
                     match ext {
                         "json" => {
                             let stripped = StripComments::new(text.as_bytes());
-                            let json: serde_json::error::Result<Value> = serde_json::from_reader(stripped);
+                            let json: serde_json::error::Result<Value> =
+                                serde_json::from_reader(stripped);
 
                             match json {
                                 Ok(json) => {
-                                    match serde_json::to_string(&json)  {
-                                        Ok(v) => {
-                                            text = v
-                                        },
+                                    match serde_json::to_string(&json) {
+                                        Ok(v) => text = v,
                                         Err(err) => {
                                             error!(
                                                 "An unexpected Error occurred while trying to serialize {:?}\n{}",

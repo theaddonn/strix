@@ -39,7 +39,7 @@ pub async fn new(new: CliNewSubCommand) -> bool {
 
     if let Some(path) = &new.path {
         if !path.exists() || !path.is_dir() {
-            match fs::create_dir(&path) {
+            match fs::create_dir(path) {
                 Ok(_) => {}
                 Err(err) => {
                     error!(
@@ -84,7 +84,7 @@ pub async fn new(new: CliNewSubCommand) -> bool {
     };
 
     match fs::write(
-        path.join(&STRIX_CONFIG),
+        path.join(STRIX_CONFIG),
         serde_json::to_string_pretty(&config).unwrap(),
     ) {
         Ok(_) => {}
