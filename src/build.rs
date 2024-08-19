@@ -1,3 +1,5 @@
+use std::env::current_dir;
+use std::ffi::OsStr;
 use crate::args::CliBuildSubCommand;
 use crate::config::{
     StrixBuildConfigProfile, StrixConfig, StrixConfigPackType, StrixConfigProjectType, STRIX_CONFIG,
@@ -10,10 +12,19 @@ use std::io;
 use std::io::{Read, Seek, Write};
 use std::path::{Path, PathBuf};
 use std::process::exit;
+use json_comments::StripComments;
+use serde_json::Value;
 use uuid::Uuid;
 use walkdir::{DirEntry, WalkDir};
 use zip::write::SimpleFileOptions;
 use zip::CompressionMethod;
+
+#[inline(always)]
+fn try_rm_prefix(path: &Path) -> PathBuf {
+    path.strip_prefix(current_dir().unwrap_or_default())
+        .unwrap_or(path)
+        .to_path_buf()
+}
 
 fn get_mojang_folder() -> PathBuf {
     if let Some(dir) = directories::BaseDirs::new() {
@@ -165,7 +176,61 @@ async fn build_vanilla(
             .collect();
 
         for entry in walk.into_iter().flatten() {
+            let mut text = match fs::read_to_string(entry.path()) {
+                Ok(v) => v,
+                Err(_) => {
+                    continue
+                }
+            };
+
+            if let Some(ext) = entry.path().extension().and_then(OsStr::to_str) {
+                if profile.minify {
+                    match ext {
+                        "json" => {
+                            let stripped = StripComments::new(text.as_bytes());
+                            let json: serde_json::error::Result<Value> = serde_json::from_reader(stripped);
+
+                            match json {
+                                Ok(json) => {
+                                    match serde_json::to_string(&json)  {
+                                        Ok(v) => {
+                                            text = v
+                                        },
+                                        Err(err) => {
+                                            error!(
+                                                "An unexpected Error occurred while trying to serialize {:?}\n{}",
+                                                try_rm_prefix(entry.path()).display(),
+                                                err
+                                            );
+                                        }
+                                    };
+                                }
+                                Err(err) => {
+                                    error!(
+                                        "An unexpected Error occurred while trying to deserialize {:?}\n{}",
+                                        try_rm_prefix(entry.path()).display(),
+                                        err
+                                    );
+                                }
+                            };
+                        }
+                        _ => {}
+                    }
+                }
+            }
+
             /* DO SOME PROCESSING LIKE MINIFICATION, COMPRESSION, ENCRYPTION, OBFUSCATION */
+
+            match fs::write(entry.path(), text) {
+                Ok(_) => {}
+                Err(err) => {
+                    error!(
+                        "An unexpected Error occurred while trying to write {:?}\n{}",
+                        try_rm_prefix(entry.path()).display(),
+                        err
+                    );
+                }
+            };
         }
 
         if profile.dev_folder {
