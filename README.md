@@ -1,3 +1,3 @@
 # strix
 
-Simple addon formatter
+Simple addon cli that helps you in your daily dev
