@@ -239,8 +239,8 @@ async fn build_vanilla(
                                 Ok(output) => {
                                     if output.status.success() {
                                         if let Err(err) = fs::rename(
-                                            &current_dir().unwrap().join(entry.path().display().to_string() + ".tmp"),
-                                            &current_dir().unwrap().join(entry.path().display().to_string())
+                                            current_dir().unwrap().join(entry.path().display().to_string() + ".tmp"),
+                                            current_dir().unwrap().join(entry.path().display().to_string())
                                         ) {
                                             error!(
                                                 "An unexpected Error occurred while trying to rename {:?} to {:?}\n{}",
