@@ -13,7 +13,7 @@ use std::fs::File;
 use std::io;
 use std::io::{Read, Write};
 use std::path::{Path, PathBuf};
-use std::process::exit;
+use std::process::{exit, Command};
 use uuid::Uuid;
 use walkdir::WalkDir;
 use zip::write::SimpleFileOptions;
@@ -176,35 +176,44 @@ async fn build_vanilla(
             .collect();
 
         for entry in walk.into_iter().flatten() {
-            let mut text = match fs::read_to_string(entry.path()) {
-                Ok(v) => v,
-                Err(_) => continue,
-            };
-
             if let Some(ext) = entry.path().extension().and_then(OsStr::to_str) {
                 if profile.minify {
                     match ext {
                         "json" => {
-                            let stripped = StripComments::new(text.as_bytes());
-                            let json: serde_json::error::Result<Value> =
-                                serde_json::from_reader(stripped);
+                            let mut text = match fs::read_to_string(entry.path()) {
+                                Ok(v) => v,
+                                Err(_) => continue,
+                            };
 
-                            match json {
-                                Ok(json) => {
-                                    match serde_json::to_string(&json) {
-                                        Ok(v) => text = v,
-                                        Err(err) => {
-                                            error!(
-                                                "An unexpected Error occurred while trying to serialize {:?}\n{}",
-                                                try_rm_prefix(entry.path()).display(),
-                                                err
-                                            );
-                                        }
-                                    };
-                                }
+                            let stripped = StripComments::new(text.as_bytes());
+                            let json: Value = match serde_json::from_reader(stripped) {
+                                Ok(v) => v,
                                 Err(err) => {
                                     error!(
                                         "An unexpected Error occurred while trying to deserialize {:?}\n{}",
+                                        try_rm_prefix(entry.path()).display(),
+                                        err
+                                    );
+                                    continue;
+                                }
+                            };
+
+                            match serde_json::to_string(&json) {
+                                Ok(v) => text = v,
+                                Err(err) => {
+                                    error!(
+                                        "An unexpected Error occurred while trying to serialize {:?}\n{}",
+                                        try_rm_prefix(entry.path()).display(),
+                                        err
+                                    );
+                                }
+                            };
+
+                            match fs::write(entry.path(), text) {
+                                Ok(_) => {}
+                                Err(err) => {
+                                    error!(
+                                        "An unexpected Error occurred while trying to write {:?}\n{}",
                                         try_rm_prefix(entry.path()).display(),
                                         err
                                     );
@@ -214,20 +223,56 @@ async fn build_vanilla(
                         _ => {}
                     }
                 }
+
+                if profile.compress {
+                    match ext {
+                        "ogg" => {
+                            match Command::new("ffmpeg")
+                                .args([
+                                    "-y",
+                                    "-i", &current_dir().unwrap().join(entry.path().display().to_string()).display().to_string(),
+                                    "-qscale:a", "8",
+                                    "-f", "ogg",
+                                    &current_dir().unwrap().join(entry.path().display().to_string() + ".tmp").display().to_string()
+                                ])
+                                .output() {
+                                Ok(output) => {
+                                    if output.status.success() {
+                                        if let Err(err) = fs::rename(
+                                            &current_dir().unwrap().join(entry.path().display().to_string() + ".tmp"),
+                                            &current_dir().unwrap().join(entry.path().display().to_string())
+                                        ) {
+                                            error!(
+                                                "An unexpected Error occurred while trying to rename {:?} to {:?}\n{}",
+                                                &current_dir().unwrap().join(entry.path().display().to_string() + ".tmp"),
+                                                &current_dir().unwrap().join(entry.path().display().to_string()),
+                                                err
+                                            );
+                                        };
+                                    } else {
+                                        error!(
+                                            "An unexpected Error occurred while trying to execute ffmpeg for {:?}\n{}",
+                                            try_rm_prefix(entry.path()).display(),
+                                            String::from_utf8_lossy(output.stderr.as_slice())
+                                        );
+                                    }
+                                },
+                                Err(err) => {
+                                    error!(
+                                        "An unexpected Error occurred while trying to execute ffmpeg for {:?}\n{}",
+                                        try_rm_prefix(entry.path()).display(),
+                                        err
+                                    );
+                                    continue;
+                                }
+                            }
+                        },
+                        _ => {}
+                    }
+                }
             }
 
             /* DO SOME PROCESSING LIKE MINIFICATION, COMPRESSION, ENCRYPTION, OBFUSCATION */
-
-            match fs::write(entry.path(), text) {
-                Ok(_) => {}
-                Err(err) => {
-                    error!(
-                        "An unexpected Error occurred while trying to write {:?}\n{}",
-                        try_rm_prefix(entry.path()).display(),
-                        err
-                    );
-                }
-            };
         }
 
         if profile.dev_folder {
